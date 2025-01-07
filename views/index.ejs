@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🤳ConFab</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <link rel="stylesheet" href="https://unpkg.com/remixicon/fonts/remixicon.css">
+</head>
+
+<body class="dark bg-gray-900 text-gray-100 h-screen">
+    <header class="flex justify-between items-center py-2 px-5 bg-gray-800 text-white text-xl">
+        <h1 class="font-bold text-lg sm:text-xl">CONFAB</h1>
+        <div class="flex items-center gap-1 sm:gap-2">
+            <div class="flex items-center gap-1 sm:gap-2 text-sm sm:text-base">
+                <i class="ri-group-line"></i>
+                <span id="no" class="font-bold text-center"></span>
+                <span>online</span>
+            </div>
+            <button id="skip"
+                class="bg-red-500 font-semibold text-white px-2 py-1 rounded text-sm sm:text-base">Skip</button>
+            <button id="themeToggle" class="bg-gray-600 px-2 py-1 rounded ml-1 sm:ml-2">
+                <i class="ri-sun-line"></i>
+            </button>
+        </div>
+    </header>
+
+    <div class="w-full h-[90vh] flex flex-col lg:flex-row">
+        <!-- Video Feed -->
+        <div class="videofeed w-full lg:w-7/12 h-1/2 lg:h-full flex flex-col">
+            <div class="remotefeed flex-1 p-3 lg:p-5 flex justify-center items-center overflow-hidden relative">
+                <video class="w-full h-full object-cover rounded" id="remoteVideo" autoplay playsinline></video>
+                <div class="localfeed absolute bottom-2 right-2 w-24 h-16 lg:w-[150px] lg:h-[100px] border-2 border-white rounded overflow-hidden bg-black/50 transition-transform hover:scale-110 dark:border-white"
+                    id="localFeed">
+                    <div class="you-label absolute top-1 left-1 bg-black/70 text-white px-2 py-1 rounded text-xs">YOU
+                    </div>
+                    <video class="w-full h-full object-cover" id="localVideo" autoplay muted></video>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Box -->
+        <div
+            class="message-box flex-grow flex flex-col text-lg relative p-3 lg:p-4 bg-gray-100 dark:bg-gray-800 rounded">
+            <h1
+                class="bg-gray-200 dark:bg-gray-700 p-3 lg:p-4 rounded mb-2 text-black dark:text-white text-base lg:text-xl">
+                Chat</h1>
+            <div class="messages flex-grow overflow-auto p-3 bg-white dark:bg-gray-700 rounded text-black dark:text-white"
+                id="messages"></div>
+            <form id="chatForm" class="flex mt-4">
+                <input type="text" id="messageInput"
+                    class="flex-grow px-2 py-1 border rounded bg-white text-gray-800 dark:bg-gray-600 dark:text-white text-sm lg:text-base"
+                    placeholder="Type a message...">
+                <button type="submit"
+                    class="bg-blue-500 px-3 lg:px-4 py-1 text-white hover:bg-blue-400 rounded text-sm lg:text-base">Send</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.socket.io/4.8.1/socket.io.min.js"
+        integrity="sha384-mkQ3/7FUtcGyoppY6bz/PORYoGqOl7/aSUMn2ymDOJcapfS6PHqxhRTMh1RR0Q6+"
+        crossorigin="anonymous"></script>
+    <script src="script.js"></script>
+    <script>
+        const themeToggle = document.getElementById('themeToggle');
+            themeToggle.addEventListener('click', () => {
+                document.body.classList.toggle('dark');
+                themeToggle.innerHTML = document.body.classList.contains('dark') ?
+                    '<i class="ri-sun-line"></i>' :
+                    '<i class="ri-moon-line"></i>';
+            });
+
+            dragElement(document.getElementById("localFeed"));
+
+            function dragElement(elmnt) {
+                let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+                const parent = document.querySelector(".remotefeed");
+
+                elmnt.addEventListener('mousedown', dragMouseDown);
+                elmnt.addEventListener('touchstart', dragTouchStart);
+
+                function dragMouseDown(e) {
+                    e.preventDefault();
+                    pos3 = e.clientX;
+                    pos4 = e.clientY;
+                    document.onmouseup = closeDragElement;
+                    document.onmousemove = elementDrag;
+                }
+
+                function dragTouchStart(e) {
+                    e.preventDefault();
+                    const touch = e.touches[0];
+                    pos3 = touch.clientX;
+                    pos4 = touch.clientY;
+                    document.ontouchend = closeDragElement;
+                    document.ontouchmove = elementDrag;
+                }
+
+                function elementDrag(e) {
+                    e.preventDefault();
+                    let clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+                    let clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
+                    pos1 = pos3 - clientX;
+                    pos2 = pos4 - clientY;
+                    pos3 = clientX;
+                    pos4 = clientY;
+
+                    const newTop = elmnt.offsetTop - pos2;
+                    const newLeft = elmnt.offsetLeft - pos1;
+
+                    const parentRect = parent.getBoundingClientRect();
+                    const elemRect = elmnt.getBoundingClientRect();
+
+                    if (
+                        newTop >= 0 &&
+                        newLeft >= 0 &&
+                        newTop + elemRect.height <= parentRect.height &&
+                        newLeft + elemRect.width <= parentRect.width
+                    ) {
+                        elmnt.style.top = newTop + "px";
+                        elmnt.style.left = newLeft + "px";
+                    }
+                }
+
+                function closeDragElement() {
+                    document.onmouseup = null;
+                    document.onmousemove = null;
+                    document.ontouchend = null;
+                    document.ontouchmove = null;
+                }
+            }
+    </script>
+
+</body>
+
+</html>
